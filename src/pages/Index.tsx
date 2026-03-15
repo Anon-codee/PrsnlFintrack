@@ -48,9 +48,7 @@ export default function Dashboard() {
   const bankBalance = bankIncome - bankExpense;
   const cashBalance = period === 'lifetime' 
   ? (cashIncome - cashExpense) + state.cashBalance
-  : cashExpense > 0 || cashIncome > 0 
-    ? cashIncome - cashExpense 
-    : state.cashBalance;
+  : cashIncome - cashExpense;
 
   const insights = useMemo(() => generateInsights(state.transactions.filter(t => !t.neglected)), [state.transactions]);
 
