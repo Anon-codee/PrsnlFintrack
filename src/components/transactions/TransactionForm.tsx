@@ -20,7 +20,7 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ type }: TransactionFormProps) {
-  const { state, addTransaction } = useFinance();
+  const { state, addTransaction, depositToVault } = useFinance();
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState('');
@@ -39,6 +39,8 @@ export function TransactionForm({ type }: TransactionFormProps) {
       return;
     }
 
+    const isSavings = type === 'expense' && category === 'Savings';
+
     addTransaction({
       amount: parseFloat(amount),
       date,
@@ -47,9 +49,16 @@ export function TransactionForm({ type }: TransactionFormProps) {
       detailedDescription: detailedDesc,
       type,
       paymentMethod,
+      neglected: isSavings ? true : false,
     });
 
-    toast.success(`${type === 'income' ? 'Income' : 'Expense'} added successfully`);
+    if (isSavings) {
+      depositToVault(parseFloat(amount));
+      toast.success(`₹${parseFloat(amount).toLocaleString()} added to your Savings Vault! 🏦`);
+    } else {
+      toast.success(`${type === 'income' ? 'Income' : 'Expense'} added successfully`);
+    }
+
     setAmount('');
     setShortDesc('');
     setDetailedDesc('');
@@ -113,6 +122,17 @@ export function TransactionForm({ type }: TransactionFormProps) {
           </Select>
         </div>
       </div>
+
+      {/* Savings hint */}
+      {type === 'expense' && category === 'Savings' && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg bg-primary/10 border border-primary/20 px-3 py-2 text-sm text-primary"
+        >
+          🏦 This will be automatically added to your Savings Vault and excluded from expenses!
+        </motion.div>
+      )}
 
       <div className="space-y-2">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">
