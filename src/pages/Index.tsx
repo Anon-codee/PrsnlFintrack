@@ -46,7 +46,11 @@ export default function Dashboard() {
   const cashExpense = filteredTransactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
 
   const bankBalance = bankIncome - bankExpense;
-  const cashBalance = (cashIncome - cashExpense) + (period === 'lifetime' ? state.cashBalance : 0);
+  const cashBalance = period === 'lifetime' 
+  ? (cashIncome - cashExpense) + state.cashBalance
+  : cashExpense > 0 || cashIncome > 0 
+    ? cashIncome - cashExpense 
+    : state.cashBalance;
 
   const insights = useMemo(() => generateInsights(state.transactions.filter(t => !t.neglected)), [state.transactions]);
 
@@ -125,7 +129,13 @@ export default function Dashboard() {
         <StatCard title="Total Income" value={`₹${totalIncome.toLocaleString()}`} icon={TrendingUp} variant="income" />
         <StatCard title="Total Expenses" value={`₹${totalExpense.toLocaleString()}`} icon={TrendingDown} variant="expense" />
         <StatCard title="Bank Balance" value={`₹${bankBalance.toLocaleString()}`} icon={Wallet} variant="balance" />
-        <StatCard title="Cash in Hand" value={`₹${cashBalance.toLocaleString()}`} icon={Banknote} variant="cash" />
+        <StatCard 
+  title={period === 'monthly' ? "Cash Flow" : "Cash in Hand"} 
+  value={`₹${cashBalance.toLocaleString()}`} 
+  icon={Banknote} 
+  variant="cash" 
+/>
+This way monthly shows the net cash flow for that month, and lifetime shows your actual cash in hand! 🚀
         <StatCard title="Savings Vault" value={`₹${state.vault.balance.toLocaleString()}`} icon={Shield} variant="vault" />
       </div>
 
