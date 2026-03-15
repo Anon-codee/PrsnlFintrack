@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { Menu } from 'lucide-react';
+import { AIAssistant } from '@/components/AIAssistant';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,6 +26,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+      <AIAssistant />
     </div>
   );
 }
