@@ -123,7 +123,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     };
   }
 
-  // ─── Save settings to Supabase ──────────────────────────────────────────
   async function saveSettings(userId: string, updates: Partial<{
     cash_balance: number;
     vault_balance: number;
@@ -162,6 +161,49 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setState(defaultState);
   }, []);
+
+  // ─── Vault methods (defined first so deleteTransaction can use them) ────
+  const depositToVault = useCallback((amount: number) => {
+    setState(prev => {
+      const vaultTx: VaultTransaction = {
+        id: crypto.randomUUID(),
+        amount,
+        date: new Date().toISOString(),
+        type: 'deposit',
+      };
+      const newVault = {
+        ...prev.vault,
+        balance: prev.vault.balance + amount,
+        history: [vaultTx, ...prev.vault.history],
+      };
+      if (auth.userId) saveSettings(auth.userId, {
+        vault_balance: newVault.balance,
+        vault_history: newVault.history,
+      });
+      return { ...prev, vault: newVault };
+    });
+  }, [auth.userId]);
+
+  const withdrawFromVault = useCallback((amount: number) => {
+    setState(prev => {
+      const vaultTx: VaultTransaction = {
+        id: crypto.randomUUID(),
+        amount,
+        date: new Date().toISOString(),
+        type: 'withdraw',
+      };
+      const newVault = {
+        ...prev.vault,
+        balance: Math.max(0, prev.vault.balance - amount),
+        history: [vaultTx, ...prev.vault.history],
+      };
+      if (auth.userId) saveSettings(auth.userId, {
+        vault_balance: newVault.balance,
+        vault_history: newVault.history,
+      });
+      return { ...prev, vault: newVault };
+    });
+  }, [auth.userId]);
 
   // ─── Transaction methods ────────────────────────────────────────────────
   const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
@@ -217,6 +259,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTransaction = useCallback(async (id: string) => {
     if (!auth.userId) return;
+
+    // Find the transaction before deleting
+    const tx = state.transactions.find(t => t.id === id);
+
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -228,8 +274,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         transactions: prev.transactions.filter(t => t.id !== id),
       }));
+
+      // If it was a savings transaction, withdraw from vault
+      if (tx && tx.category === 'Savings' && tx.neglected) {
+        withdrawFromVault(tx.amount);
+      }
     }
-  }, [auth.userId]);
+  }, [auth.userId, state.transactions, withdrawFromVault]);
 
   const toggleNeglect = useCallback(async (id: string) => {
     if (!auth.userId) return;
@@ -272,52 +323,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [auth.userId]);
 
-  // ─── Settings methods (all synced to Supabase) ──────────────────────────
+  // ─── Other settings methods ─────────────────────────────────────────────
   const updateCashBalance = useCallback((amount: number) => {
     setState(prev => ({ ...prev, cashBalance: amount }));
     if (auth.userId) saveSettings(auth.userId, { cash_balance: amount });
-  }, [auth.userId]);
-
-  const depositToVault = useCallback((amount: number) => {
-    setState(prev => {
-      const vaultTx: VaultTransaction = {
-        id: crypto.randomUUID(),
-        amount,
-        date: new Date().toISOString(),
-        type: 'deposit',
-      };
-      const newVault = {
-        ...prev.vault,
-        balance: prev.vault.balance + amount,
-        history: [vaultTx, ...prev.vault.history],
-      };
-      if (auth.userId) saveSettings(auth.userId, {
-        vault_balance: newVault.balance,
-        vault_history: newVault.history,
-      });
-      return { ...prev, vault: newVault };
-    });
-  }, [auth.userId]);
-
-  const withdrawFromVault = useCallback((amount: number) => {
-    setState(prev => {
-      const vaultTx: VaultTransaction = {
-        id: crypto.randomUUID(),
-        amount,
-        date: new Date().toISOString(),
-        type: 'withdraw',
-      };
-      const newVault = {
-        ...prev.vault,
-        balance: Math.max(0, prev.vault.balance - amount),
-        history: [vaultTx, ...prev.vault.history],
-      };
-      if (auth.userId) saveSettings(auth.userId, {
-        vault_balance: newVault.balance,
-        vault_history: newVault.history,
-      });
-      return { ...prev, vault: newVault };
-    });
   }, [auth.userId]);
 
   const setVaultPin = useCallback((pin: string | null) => {
