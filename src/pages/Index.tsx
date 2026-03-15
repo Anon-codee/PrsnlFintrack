@@ -46,7 +46,7 @@ export default function Dashboard() {
   const cashExpense = filteredTransactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
 
   const bankBalance = bankIncome - bankExpense;
-  const cashBalance = (cashIncome - cashExpense) + state.cashBalance;
+  const cashBalance = (cashIncome - cashExpense) + (period === 'lifetime' ? state.cashBalance : 0);
 
   const insights = useMemo(() => generateInsights(state.transactions.filter(t => !t.neglected)), [state.transactions]);
 
