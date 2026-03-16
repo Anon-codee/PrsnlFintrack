@@ -36,21 +36,31 @@ export default function Dashboard() {
     });
   }, [state.transactions, period, monthFilter]);
 
-  // Period-filtered stats
-  const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const bankIncome = filteredTransactions.filter(t => t.type === 'income' && (t.paymentMethod || 'bank') === 'bank').reduce((s, t) => s + t.amount, 0);
-  const bankExpense = filteredTransactions.filter(t => t.type === 'expense' && (t.paymentMethod || 'bank') === 'bank').reduce((s, t) => s + t.amount, 0);
+  // Bank only — period filtered
+  const bankIncome = filteredTransactions
+    .filter(t => t.type === 'income' && (t.paymentMethod || 'bank') === 'bank')
+    .reduce((s, t) => s + t.amount, 0);
+  const bankExpense = filteredTransactions
+    .filter(t => t.type === 'expense' && (t.paymentMethod || 'bank') === 'bank')
+    .reduce((s, t) => s + t.amount, 0);
   const bankBalance = bankIncome - bankExpense;
 
-  // Cash breakdown for the breakdown card (period-filtered)
-  const cashIncomeFiltered = filteredTransactions.filter(t => t.type === 'income' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
-  const cashExpenseFiltered = filteredTransactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
+  // Cash — period filtered (for the 2 extra cards)
+  const cashIncome = filteredTransactions
+    .filter(t => t.type === 'income' && t.paymentMethod === 'cash')
+    .reduce((s, t) => s + t.amount, 0);
+  const cashExpense = filteredTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'cash')
+    .reduce((s, t) => s + t.amount, 0);
 
-  // Cash in Hand is always a running total — never period-filtered
-  const allCashIncome = state.transactions.filter(t => t.type === 'income' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
-  const allCashExpense = state.transactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
-  const cashBalance = (allCashIncome - allCashExpense) + state.cashBalance;
+  // Cash in Hand — always running total, never filtered
+  const allCashIncome = state.transactions
+    .filter(t => t.type === 'income' && t.paymentMethod === 'cash')
+    .reduce((s, t) => s + t.amount, 0);
+  const allCashExpense = state.transactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'cash')
+    .reduce((s, t) => s + t.amount, 0);
+  const cashInHand = (allCashIncome - allCashExpense) + state.cashBalance;
 
   const insights = useMemo(() => generateInsights(state.transactions.filter(t => !t.neglected)), [state.transactions]);
 
@@ -59,7 +69,6 @@ export default function Dashboard() {
       const d = new Date(t.date);
       return t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-
     return state.budgets.filter(b => {
       const spent = currentExpenses.filter(t => t.category === b.category).reduce((s, t) => s + t.amount, 0);
       return spent >= b.limit * 0.8;
@@ -123,58 +132,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Main Stats Grid — bank only */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard title="Total Income" value={`₹${totalIncome.toLocaleString()}`} icon={TrendingUp} variant="income" />
-        <StatCard title="Total Expenses" value={`₹${totalExpense.toLocaleString()}`} icon={TrendingDown} variant="expense" />
+        <StatCard title="Bank Income" value={`₹${bankIncome.toLocaleString()}`} icon={TrendingUp} variant="income" />
+        <StatCard title="Bank Expenses" value={`₹${bankExpense.toLocaleString()}`} icon={TrendingDown} variant="expense" />
         <StatCard title="Bank Balance" value={`₹${bankBalance.toLocaleString()}`} icon={Wallet} variant="balance" />
-        <StatCard title="Cash in Hand" value={`₹${cashBalance.toLocaleString()}`} icon={Banknote} variant="cash" />
+        <StatCard title="Cash in Hand" value={`₹${cashInHand.toLocaleString()}`} icon={Banknote} variant="cash" />
         <StatCard title="Savings Vault" value={`₹${state.vault.balance.toLocaleString()}`} icon={Shield} variant="vault" />
       </div>
 
-      {/* Bank vs Cash Breakdown */}
-      <div className="glass-card rounded-xl p-5 grid grid-cols-2 gap-6">
-        <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            🏦 Bank
-          </p>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Income</span>
-            <span className="font-mono text-sm font-semibold text-income">+₹{bankIncome.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Expenses</span>
-            <span className="font-mono text-sm font-semibold text-expense">-₹{bankExpense.toLocaleString()}</span>
-          </div>
-          <div className="h-px bg-border" />
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-card-foreground">Net</span>
-            <span className={`font-mono text-sm font-bold ${bankIncome - bankExpense >= 0 ? 'text-income' : 'text-expense'}`}>
-              ₹{(bankIncome - bankExpense).toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            💵 Cash
-          </p>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Income</span>
-            <span className="font-mono text-sm font-semibold text-income">+₹{cashIncomeFiltered.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Expenses</span>
-            <span className="font-mono text-sm font-semibold text-expense">-₹{cashExpenseFiltered.toLocaleString()}</span>
-          </div>
-          <div className="h-px bg-border" />
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-card-foreground">Net</span>
-            <span className={`font-mono text-sm font-bold ${cashIncomeFiltered - cashExpenseFiltered >= 0 ? 'text-income' : 'text-expense'}`}>
-              ₹{(cashIncomeFiltered - cashExpenseFiltered).toLocaleString()}
-            </span>
-          </div>
-        </div>
+      {/* Cash breakdown — 2 extra cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        <StatCard title="Cash Income" value={`₹${cashIncome.toLocaleString()}`} icon={TrendingUp} variant="income" />
+        <StatCard title="Cash Expenses" value={`₹${cashExpense.toLocaleString()}`} icon={TrendingDown} variant="expense" />
       </div>
 
       {/* Budget Alerts */}
