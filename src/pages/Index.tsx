@@ -49,8 +49,8 @@ export default function Dashboard() {
   const cashIncome = filteredTransactions
     .filter(t => t.type === 'income' && t.paymentMethod === 'cash')
     .reduce((s, t) => s + t.amount, 0);
-  const cashExpense = filteredTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod === 'cash')
+   const cashExpense = filteredTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'cash' && !t.neglected)
     .reduce((s, t) => s + t.amount, 0);
 
   // Cash in Hand — always running total, never filtered
@@ -58,7 +58,7 @@ export default function Dashboard() {
     .filter(t => t.type === 'income' && t.paymentMethod === 'cash')
     .reduce((s, t) => s + t.amount, 0);
   const allCashExpense = state.transactions
-    .filter(t => t.type === 'expense' && t.paymentMethod === 'cash')
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'cash' && !t.neglected)
     .reduce((s, t) => s + t.amount, 0);
   const cashInHand = (allCashIncome - allCashExpense) + state.cashBalance;
 
