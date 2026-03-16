@@ -36,18 +36,21 @@ export default function Dashboard() {
     });
   }, [state.transactions, period, monthFilter]);
 
+  // Period-filtered stats
   const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-
   const bankIncome = filteredTransactions.filter(t => t.type === 'income' && (t.paymentMethod || 'bank') === 'bank').reduce((s, t) => s + t.amount, 0);
   const bankExpense = filteredTransactions.filter(t => t.type === 'expense' && (t.paymentMethod || 'bank') === 'bank').reduce((s, t) => s + t.amount, 0);
-  const cashIncome = filteredTransactions.filter(t => t.type === 'income' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
-  const cashExpense = filteredTransactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
-
   const bankBalance = bankIncome - bankExpense;
-  const cashBalance = period === 'lifetime'
-    ? (cashIncome - cashExpense) + state.cashBalance
-    : cashIncome - cashExpense;
+
+  // Cash breakdown for the breakdown card (period-filtered)
+  const cashIncomeFiltered = filteredTransactions.filter(t => t.type === 'income' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
+  const cashExpenseFiltered = filteredTransactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
+
+  // Cash in Hand is always a running total — never period-filtered
+  const allCashIncome = state.transactions.filter(t => t.type === 'income' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
+  const allCashExpense = state.transactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
+  const cashBalance = (allCashIncome - allCashExpense) + state.cashBalance;
 
   const insights = useMemo(() => generateInsights(state.transactions.filter(t => !t.neglected)), [state.transactions]);
 
@@ -125,7 +128,7 @@ export default function Dashboard() {
         <StatCard title="Total Income" value={`₹${totalIncome.toLocaleString()}`} icon={TrendingUp} variant="income" />
         <StatCard title="Total Expenses" value={`₹${totalExpense.toLocaleString()}`} icon={TrendingDown} variant="expense" />
         <StatCard title="Bank Balance" value={`₹${bankBalance.toLocaleString()}`} icon={Wallet} variant="balance" />
-        <StatCard title={period === 'monthly' ? 'Cash Flow' : 'Cash in Hand'} value={`₹${cashBalance.toLocaleString()}`} icon={Banknote} variant="cash" />
+        <StatCard title="Cash in Hand" value={`₹${cashBalance.toLocaleString()}`} icon={Banknote} variant="cash" />
         <StatCard title="Savings Vault" value={`₹${state.vault.balance.toLocaleString()}`} icon={Shield} variant="vault" />
       </div>
 
@@ -158,17 +161,17 @@ export default function Dashboard() {
           </p>
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Income</span>
-            <span className="font-mono text-sm font-semibold text-income">+₹{cashIncome.toLocaleString()}</span>
+            <span className="font-mono text-sm font-semibold text-income">+₹{cashIncomeFiltered.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Expenses</span>
-            <span className="font-mono text-sm font-semibold text-expense">-₹{cashExpense.toLocaleString()}</span>
+            <span className="font-mono text-sm font-semibold text-expense">-₹{cashExpenseFiltered.toLocaleString()}</span>
           </div>
           <div className="h-px bg-border" />
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-card-foreground">Net</span>
-            <span className={`font-mono text-sm font-bold ${cashIncome - cashExpense >= 0 ? 'text-income' : 'text-expense'}`}>
-              ₹{(cashIncome - cashExpense).toLocaleString()}
+            <span className={`font-mono text-sm font-bold ${cashIncomeFiltered - cashExpenseFiltered >= 0 ? 'text-income' : 'text-expense'}`}>
+              ₹{(cashIncomeFiltered - cashExpenseFiltered).toLocaleString()}
             </span>
           </div>
         </div>
