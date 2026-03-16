@@ -38,7 +38,6 @@ export default function Dashboard() {
 
   const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance = totalIncome - totalExpense;
 
   const bankIncome = filteredTransactions.filter(t => t.type === 'income' && (t.paymentMethod || 'bank') === 'bank').reduce((s, t) => s + t.amount, 0);
   const bankExpense = filteredTransactions.filter(t => t.type === 'expense' && (t.paymentMethod || 'bank') === 'bank').reduce((s, t) => s + t.amount, 0);
@@ -46,13 +45,12 @@ export default function Dashboard() {
   const cashExpense = filteredTransactions.filter(t => t.type === 'expense' && t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
 
   const bankBalance = bankIncome - bankExpense;
-  const cashBalance = period === 'lifetime' 
-  ? (cashIncome - cashExpense) + state.cashBalance
-  : cashIncome - cashExpense;
+  const cashBalance = period === 'lifetime'
+    ? (cashIncome - cashExpense) + state.cashBalance
+    : cashIncome - cashExpense;
 
   const insights = useMemo(() => generateInsights(state.transactions.filter(t => !t.neglected)), [state.transactions]);
 
-  // Budget alerts
   const budgetAlerts = useMemo(() => {
     const currentExpenses = state.transactions.filter(t => {
       const d = new Date(t.date);
@@ -127,14 +125,53 @@ export default function Dashboard() {
         <StatCard title="Total Income" value={`₹${totalIncome.toLocaleString()}`} icon={TrendingUp} variant="income" />
         <StatCard title="Total Expenses" value={`₹${totalExpense.toLocaleString()}`} icon={TrendingDown} variant="expense" />
         <StatCard title="Bank Balance" value={`₹${bankBalance.toLocaleString()}`} icon={Wallet} variant="balance" />
-        <StatCard 
-  title={period === 'monthly' ? "Cash Flow" : "Cash in Hand"} 
-  value={`₹${cashBalance.toLocaleString()}`} 
-  icon={Banknote} 
-  variant="cash" 
-/>
-This way monthly shows the net cash flow for that month, and lifetime shows your actual cash in hand! 🚀
+        <StatCard title={period === 'monthly' ? 'Cash Flow' : 'Cash in Hand'} value={`₹${cashBalance.toLocaleString()}`} icon={Banknote} variant="cash" />
         <StatCard title="Savings Vault" value={`₹${state.vault.balance.toLocaleString()}`} icon={Shield} variant="vault" />
+      </div>
+
+      {/* Bank vs Cash Breakdown */}
+      <div className="glass-card rounded-xl p-5 grid grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            🏦 Bank
+          </p>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Income</span>
+            <span className="font-mono text-sm font-semibold text-income">+₹{bankIncome.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Expenses</span>
+            <span className="font-mono text-sm font-semibold text-expense">-₹{bankExpense.toLocaleString()}</span>
+          </div>
+          <div className="h-px bg-border" />
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-card-foreground">Net</span>
+            <span className={`font-mono text-sm font-bold ${bankIncome - bankExpense >= 0 ? 'text-income' : 'text-expense'}`}>
+              ₹{(bankIncome - bankExpense).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            💵 Cash
+          </p>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Income</span>
+            <span className="font-mono text-sm font-semibold text-income">+₹{cashIncome.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Expenses</span>
+            <span className="font-mono text-sm font-semibold text-expense">-₹{cashExpense.toLocaleString()}</span>
+          </div>
+          <div className="h-px bg-border" />
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-card-foreground">Net</span>
+            <span className={`font-mono text-sm font-bold ${cashIncome - cashExpense >= 0 ? 'text-income' : 'text-expense'}`}>
+              ₹{(cashIncome - cashExpense).toLocaleString()}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Budget Alerts */}
